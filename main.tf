@@ -44,7 +44,7 @@ resource "aws_instance" "blog" {
   tags = {
     Name = "Learning Terraform"
   }
-}xx
+}
 
 module "alb" {
   source  = "terraform-aws-modules/alb/aws"
