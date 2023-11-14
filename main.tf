@@ -46,8 +46,6 @@ resource "aws_instance" "blog" {
   }
 }
 
-
-
 module "blog_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "5.1.0"
@@ -95,4 +93,45 @@ resource "aws_security_group_rule" "blog_everything_out" {
   cidr_blocks = ["0.0.0.0/0"]
 
   security_group_id = aws_security_group.blog.id
+}
+
+module "alb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "~> 6.0"
+
+  name = "blog-alb"
+
+  load_balancer_type = "application"
+  module.blog_vpc.security_group_id
+
+  vpc_id          = module.blog_vpc.vpc_id
+  subnets         = module.blog_vpc.public_subnets
+  security_groups = [module.blog_sg.security_group_id]
+
+  target_groups = [
+    {
+      name_prefix = "blog-"
+      backend_protocal = "HTTP"
+      backend_port = 80
+      target_type = "instance"
+      target = {
+        my_target = {
+          target_id = aws_instance.blog.id
+          port = 80
+        }
+      }
+    }
+  ]
+
+  https_listeners = [
+    {
+      port = 80
+      protocol = "HTTP"
+      target_group_index = 0
+    }
+  ]
+
+  tags ={
+    Environment = "dev"
+  }
 }
